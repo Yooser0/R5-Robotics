@@ -19,8 +19,8 @@ def change_position(coords: list[float], tello: Tello):
         time.sleep(TIME_INTERVAL)
 
         # Integral approximation using addition of parts
-        coords[0] += (tello.get_speed_x() * UNITS_TO_CENT_X) * TIME_INTERVAL
-        coords[1] += (tello.get_speed_y() * UNITS_TO_CENT_Y) * TIME_INTERVAL
+        coords[0] += tello.get_speed_x() * TIME_INTERVAL
+        coords[1] += tello.get_speed_y() * TIME_INTERVAL
 
 if __name__ == '__main__':
     tello = Tello()
@@ -29,9 +29,20 @@ if __name__ == '__main__':
     coords = [0.0, 0.0]
     threading.Thread(target=change_position, args=(coords, tello), daemon=True).start()
 
-    time.sleep(3)
+    tello.takeoff()
     print(coords)
 
-    for _ in range(6):
-        time.sleep(13)
+    decrement: int = 50
+    initial: int = 280
+    num_moves: int = 10
+    for i in range(num_moves):
+        decrement_factor: int = i // 2
+        move_distance: int = initial - (decrement * decrement_factor)
+        if i % 2 == 0:
+            tello.move_forward(move_distance)
+        else:
+            tello.move_back(move_distance)
+
         print(coords)
+    
+    tello.land()
