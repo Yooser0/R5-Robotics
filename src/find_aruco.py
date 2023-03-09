@@ -3,7 +3,7 @@ import numpy as np
 import os
 import yaml
 
-
+#NOTE: OPENCV VERSION MUST BE AT LEAST 4.7.0
 #NOTE: Find 3d location from solvePnp() func at https://docs.opencv.org/4.7.0/d9/d0c/group__calib3d.html#ga549c2075fac14829ff4a58bc931c033d
 
 
@@ -15,7 +15,17 @@ SIDE_LEN_MM = 205.0
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50)
 aruco_img = aruco_dict.generateImageMarker(1, SIDE_LEN_PX)
 
-camera_matrix = 
+#Load camera parameters
+#access camera parameters yaml file up, over, and down one directory
+    #Should be ..\calibration\camera_params.yaml
+cam_mat_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),'calibration','calibration_matrix.yaml')
+with open(cam_mat_path, 'r') as f:
+    full = yaml.load(f, Loader=yaml.FullLoader)
+    camera_matrix = np.array(full['camera_matrix'])
+    t_vects = np.array(full['tvecs'])
+    r_vects = np.array(full['rvecs'])
+    
+    
 
 def generate_arucos(num_markers):
     aruco_img = np.zeros((SIDE_LEN_PX, SIDE_LEN_PX, 3), np.uint8)
@@ -47,11 +57,11 @@ def calc_pose(img, corners, ids, camera_matrix, dist_coeffs):
 
 
 
-cam = cv2.VideoCapture(0)
-while True:
-    ret, img = cam.read()
-    if ret:
-        find_aruco(img, aruco_dict)
-        cv2.imshow('img', img)
-        if cv2.waitKey(1) == ord('q'):
-            break
+# cam = cv2.VideoCapture(0)
+# while True:
+#     ret, img = cam.read()
+#     if ret:
+#         find_aruco(img, aruco_dict)
+#         cv2.imshow('img', img)
+#         if cv2.waitKey(1) == ord('q'):
+#             break
