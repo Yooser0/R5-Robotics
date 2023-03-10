@@ -6,16 +6,17 @@ def capture_images(num_images, folder_name = 'calibration_images', delay = 2):
     #check if folder exists
     if not os.path.isdir(folder_name):
         os.mkdir(folder_name)
+    cap = cv2.VideoCapture(0)
     #capture images
     for i in range(num_images):
-        cap = cv2.VideoCapture(0)
         ret, frame = cap.read()
         cv2.imwrite(folder_name + '/image' + str(i) + '.jpg', frame)
         print('Captured image ' + str(i) + '.jpg ...')
         #delay 5 seconds between captures
-        time.sleep(delay)
+        # time.sleep(delay)
         cv2.imshow('frame', frame)
         cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 def capture_images_drone(num_images=20, folder_name = 'calibration_images', delay = 2):
     """Used to collect images for calibration from the drone. Move the checkerboard calibration image
@@ -53,4 +54,5 @@ def capture_images_drone(num_images=20, folder_name = 'calibration_images', dela
 time.sleep(5)
 print('GOING FOR IT!!---------\n\n\n')
 # capture_images_drone(5,'box_images/set_1', 2)
-capture_images(5,'box_images/set_3', 2)
+capture_images(20,'baxter_testing_webcam', 2)
+0

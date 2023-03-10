@@ -15,14 +15,32 @@ aruco_img = aruco_dict.generateImageMarker(1, SIDE_LEN_PX)#id 1 out of 6X6_50 di
 #Load camera parameters
 #access camera parameters yaml one directory up, one over, and one down from current file
     #Should be ..\calibration\camera_params.yaml
-cam_mat_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),'calibration','drone_calibration_matrix.yaml')
+
+
+# cam_mat_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),'calibration','drone_calibration_matrix.yaml')
+#NOTE: THIS IS FOR THE BAXTER CAMERA, FOR TESTING PURPOSES. CHANGE TO DRONE CAMERA WHEN USING DRONE CAMERA
+cam_mat_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),'calibration','baxter_webcam_calibration_matrix.yaml')
 with open(cam_mat_path, 'r') as f:
     full = yaml.load(f, Loader=yaml.FullLoader)
     camera_matrix = np.array(full['camera_matrix'])
     t_vects = np.array(full['tvecs'])
     r_vects = np.array(full['rvecs'])
+    dist_coeffs = np.array(full['dist_coeff'])
 
- 
+def undistort_img(img, camera_matrix, dist_coeff):
+    """Undistort an image using the calibration matrix and distortion coefficients
+
+    Args:
+        img (np.array): Image to undistort
+        matrx (np.array): Calibration matrix
+        dist (np.array): Distortion coefficients
+
+    Returns:
+        np.array: Undistorted image
+    """
+    unwarped = cv2.undistort(img, camera_matrix, dist_coeff, None, camera_matrix)
+    return unwarped
+
 def generate_arucos(num_markers, dict = aruco_dict, side_len_px = SIDE_LEN_PX):
     """Generates aruco markers and saves them to a folder. Only needs to be run once, and then the images can be used for the rest of the time.
 
@@ -105,10 +123,13 @@ def calc_pose(img, corners, camera_matrix, dist_coeffs = np.zeros((4,1))):
     #Create array of 2D points for each corner of the aruco marker (in pixels) to represent image pts in 2D space
     img_pts_2d = np.array(corners).astype(np.float64)#NOTE: Need to convert to float64 for solvePnP() to work
 
-    success, rotation_vector, translation_vector = cv2.solvePnP(obj_pts_3d, img_pts_2d, camera_matrix, dist_coeffs)
+    # success, rotation_vector, translation_vector = cv2.solvePnP(obj_pts_3d, img_pts_2d, camera_matrix, dist_coeffs)
+    success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(obj_pts_3d, img_pts_2d, camera_matrix, dist_coeffs)
+    rotation_vector = np.degrees(rotation_vector)
+
     if success:
         print(f'Found pose of marker: \n{translation_vector}\n{rotation_vector}')
-        cv2.putText(img, f'{translation_vector}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        cv2.putText(img, f'{translation_vector/10}cm', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 2)
 
         #NOTE: Consder using solvePnPRansac() instead of solvePnP() to improve accuracy?
         #NOTE: Consider using sovlePnPRefineLM() to use non-linear Levenberg-Marquardt minimization scheme to refine pose estimate (Bunch of sci-fi words, not sure why it's better)
@@ -118,17 +139,18 @@ def calc_pose(img, corners, camera_matrix, dist_coeffs = np.zeros((4,1))):
         print('Failed to find pose')
         return False, None, None
         
-
-
-
 #Testing with computer webcam
 cam = cv2.VideoCapture(0)
 while True:
     ret, img = cam.read()
+    #Cruical to undistort image before finding aruco markers
+    img = undistort_img(img, camera_matrix, dist_coeffs)
     if ret:
+        #Find aruco markers in image (returns corners of markers in image)
         corner_success, corners = find_aruco(img, aruco_dict)
         if corner_success:
-            pose_success, rotation_vector, translation_vector = calc_pose(img, corners, camera_matrix)
+            #Calculate pose of aruco markers in image (returns rotation and translation vectors)
+            pose_success, rotation_vector, translation_vector = calc_pose(img, corners, camera_matrix, dist_coeffs)
             if pose_success:
                 print(f'Found pose of markers: \n{translation_vector}\n{rotation_vector}')
         cv2.imshow('img', img)

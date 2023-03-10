@@ -4,7 +4,8 @@ import os
 import glob
 import yaml
  
-IMAGE_DIRECTORY = 'calibration_images'
+# IMAGE_DIRECTORY = 'calibration_images'
+IMAGE_DIRECTORY = 'baxter_testing_webcam'
  
 # Defining the dimensions of checkerboard
 CHECKERBOARD = (6,9)
@@ -22,7 +23,11 @@ objp[0,:,:2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
 prev_img_shape = None
  
 # Extracting path of individual image stored in a given directory
-images = glob.glob(f'./{IMAGE_DIRECTORY}/*.jpg')
+path = os.path.join(os.path.dirname(__file__), IMAGE_DIRECTORY,'*.jpg')
+print(path)
+# images = glob.glob(f'{IMAGE_DIRECTORY}/*.jpg')
+images = glob.glob(path)
+
 for fname in images:
     img = cv2.imread(fname)
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
