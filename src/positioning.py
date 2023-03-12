@@ -1,7 +1,7 @@
 from djitellopy import Tello
 import time
 
-def change_position(coords: list[float], tello: Tello):
+def change_position(coords: tuple[float, float], tello: Tello):
     """ Function to change the given coordinates'
     positions every time interval. Meant to be
     called through a thread daemon at the beginnning
