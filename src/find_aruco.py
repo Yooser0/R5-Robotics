@@ -16,7 +16,6 @@ aruco_img = aruco_dict.generateImageMarker(1, SIDE_LEN_PX)#id 1 out of 6X6_50 di
 #access camera parameters yaml one directory up, one over, and one down from current file
     #Should be ..\calibration\camera_params.yaml
 
-
 # cam_mat_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),'calibration','drone_calibration_matrix.yaml')
 #NOTE: THIS IS FOR THE BAXTER CAMERA, FOR TESTING PURPOSES. CHANGE TO DRONE CAMERA WHEN USING DRONE CAMERA
 cam_mat_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),'calibration','baxter_webcam_calibration_matrix.yaml')
@@ -92,7 +91,7 @@ def find_aruco(img, dict = aruco_dict, detector_params = cv2.aruco.DetectorParam
                 objPts.append(pt)
                 cv2.circle(img, tuple(pt), 5, (0,0,255), -1)
         #Return array of corner coordinates in camera reference frame
-        return True, np.array(objPts)
+        return True, np.array(objPts).astype(dtype=np.float64)
     else:
         #If no markers are found, return None
         return False, None
@@ -105,7 +104,7 @@ def calc_pose(img, corners, camera_matrix, dist_coeffs = np.zeros((4,1))):
         img (_type_): cv2 image from camera (or file)
         corners (_type_): list of corners of aruco markers in image, already found
         camera_matrix (_type_): Intrinsic camera parameters expressed as matrix. Should be 3x3, generated from calibration script
-        dist_coeffs (_type_): Distortion coefficients. Should be zero if camera is not majorly distorted. Defaults to np.zeros((4,1)).
+        dist_coeffs (_type_): Distortion coefficients. Found in .yaml file, usually fairly small. Defaults to np.zeros((4,1)).
 
     Returns:
         Bool: True if pose is found, False if not
@@ -121,11 +120,10 @@ def calc_pose(img, corners, camera_matrix, dist_coeffs = np.zeros((4,1))):
     ]).astype(np.float64)#NOTE: Need to convert to float64 for solvePnP() to work
     
     #Create array of 2D points for each corner of the aruco marker (in pixels) to represent image pts in 2D space
-    img_pts_2d = np.array(corners).astype(np.float64)#NOTE: Need to convert to float64 for solvePnP() to work
+    img_pts_2d = corners
 
     # success, rotation_vector, translation_vector = cv2.solvePnP(obj_pts_3d, img_pts_2d, camera_matrix, dist_coeffs)
     success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(obj_pts_3d, img_pts_2d, camera_matrix, dist_coeffs)
-    rotation_vector = np.degrees(rotation_vector)
 
     if success:
         print(f'Found pose of marker: \n{translation_vector}\n{rotation_vector}')
@@ -134,11 +132,42 @@ def calc_pose(img, corners, camera_matrix, dist_coeffs = np.zeros((4,1))):
         #NOTE: Consder using solvePnPRansac() instead of solvePnP() to improve accuracy?
         #NOTE: Consider using sovlePnPRefineLM() to use non-linear Levenberg-Marquardt minimization scheme to refine pose estimate (Bunch of sci-fi words, not sure why it's better)
 
-        return True, rotation_vector, translation_vector
+        return True, rotation_vector, translation_vector #NOTE: Rotation vector is in radians
     else:
         print('Failed to find pose')
         return False, None, None
-        
+
+def draw_on_axes(corners, img, rotation_vector, translation_vector, camera_matrix, dist_coeffs = np.zeros((4,1))):
+    """Draws axes on image of aruco markers. Useful for debugging
+
+    Args:
+        img (_type_): cv2 image from camera (or file)
+        rotation_vector (_type_): rotation vectors expressed as euler angles
+        translation_vector (_type_): translation vectors relative to camera in x,y,z coordinates (cm)
+        camera_matrix (_type_): Intrinsic camera parameters expressed as matrix. Should be 3x3, generated from calibration script
+        dist_coeffs (_type_): Distortion coefficients. Should be zero if camera is not majorly distorted. Defaults to np.zeros((4,1)).
+
+    Returns:
+        _type_: cv2 image with axes drawn on it
+    """
+    #Draw axes on image
+    axis_pts = np.array([
+        [SIDE_LEN_MM,0,0],
+        [0,SIDE_LEN_MM,0],
+        [0,0,-SIDE_LEN_MM]])
+    print(type(rotation_vector))
+    imgpts, _ = cv2.projectPoints(axis_pts, rotation_vector, translation_vector, camera_matrix, dist_coeffs)
+    
+    corners = corners.astype(int)
+    imgpts = imgpts.astype(int)
+
+    #Draw axis lines
+    img = cv2.line(img, tuple(corners[0].ravel()), tuple(imgpts[0].ravel()), (255,0,0), 5)
+    img = cv2.line(img, tuple(corners[0].ravel()), tuple(imgpts[1].ravel()), (0,255,0), 5)
+    img = cv2.line(img, tuple(corners[0].ravel()), tuple(imgpts[2].ravel()), (0,0,255), 5)
+
+    return img
+
 #Testing with computer webcam
 cam = cv2.VideoCapture(0)
 while True:
@@ -153,6 +182,7 @@ while True:
             pose_success, rotation_vector, translation_vector = calc_pose(img, corners, camera_matrix, dist_coeffs)
             if pose_success:
                 print(f'Found pose of markers: \n{translation_vector}\n{rotation_vector}')
+                img = draw_on_axes(corners,img, rotation_vector, translation_vector, camera_matrix, dist_coeffs)
         cv2.imshow('img', img)
         
         

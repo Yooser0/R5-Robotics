@@ -20,3 +20,5 @@ def change_position(coords: tuple[float, float], tello: Tello):
         # Integral approximation using addition of parts
         coords[0] += (tello.get_speed_x() * UNITS_TO_CENT_X) * TIME_INTERVAL
         coords[1] += (tello.get_speed_y() * UNITS_TO_CENT_Y) * TIME_INTERVAL
+        coords[2] = tello.get_height() #Z-axis velocity inaccurate, so sub with height. Take average of height and barometer for more accuracy
+        #^This is commented out because I'm not sure how adding an extra height mezzy willf affect other code. Also need to validate that the height is accurate

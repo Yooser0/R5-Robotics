@@ -4,8 +4,8 @@ import os
 import glob
 import yaml
  
-# IMAGE_DIRECTORY = 'calibration_images'
-IMAGE_DIRECTORY = 'baxter_testing_webcam'
+IMAGE_DIRECTORY = 'calibration_images'
+# IMAGE_DIRECTORY = 'baxter_testing_webcam'
  
 # Defining the dimensions of checkerboard
 CHECKERBOARD = (6,9)

@@ -8,9 +8,10 @@ tello.streamon()
 while True:
     frame_read = tello.get_frame_read().frame
     cv2.imshow('frame',frame_read)
-    cv2.waitKey(1)
+    if cv2.waitKey(1) == ord('q'):#Press q to quit loop
+            cv2.imwrite("./src/picture.png", frame_read)
+            break
 
-cv2.imwrite("picture2.png", frame_read)
 
 #end connection
 tello.streamoff()
